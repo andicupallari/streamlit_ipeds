@@ -1,10 +1,2 @@
 numpy==1.8.1
-pandas==0.8.1
-plotly==5.3.1
-pydeck==0.6.2
-streamlit==0.88.0
-requests==2.21.0
-matplotlib==3.0.3
-folium==0.12.1
-gwosc==0.6.1
-gwpy==2.1.0
+
