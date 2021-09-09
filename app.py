@@ -1,37 +1,14 @@
 import pandas as pd 
 import streamlit as st
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 import plotly.express as px
 
-import folium
-from folium.plugins import HeatMap
-
-import requests, os
-from gwpy.timeseries import TimeSeries
-from gwosc.locate import get_urls
-from gwosc import datasets
-from gwosc.api import fetch_event_json
-
-from copy import deepcopy
-import base64
-import pydeck as pdk
-import plotly.express as px
-from pydeck.types import String
 
 
-# from helper import make_audio_file
-
-# Use the non-interactive Agg backend, which is recommended as a
-# thread-safe backend.
-# See https://matplotlib.org/3.3.2/faq/howto_faq.html#working-with-threads.
 import matplotlib as mpl
 mpl.use("agg")
-
-import numpy as np
-import time
 
 st.header('Where to find talent in the US to increase diversity and inclusion accross races and gender?')
 
@@ -130,39 +107,3 @@ if aggregate_all_majors:
 	st.write(data_filtered_aggregated_by_school.sort_values(data_filtered_aggregated_by_school.columns[0], ascending = False).reset_index(drop =True))
 
 
-
-
-# from urllib.request import urlopen
-# import json
-# with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-#     counties = json.load(response)
-
-# fig = px.choropleth_mapbox(data_filtered, geojson = counties,  locations = 'FIPS', color =data_filtered.columns[0],
-# range_color=(0, 12),
-#                            mapbox_style="carto-positron",
-#                            zoom=8, center = {"lat": midpoint[0], "lon": midpoint[1]},
-#                            opacity=0.5,)
-# fig.update_layout(margin = {'r':0, 't':0, 'l':0, 'b':0, })
-# st.plotly_chart(fig)
-
-# st.pydeck_chart(pdk.Deck(
-#     map_style ="mapbox://styles / mapbox / light-v9",
-#     initial_view_state ={
-#         "latitude": midpoint[0],
-#         "longitude": midpoint[1],
-#     },
-#     layers =[
-#         pdk.Layer(
-#         "HeatmapLayer",
-#         opacity=0.9,
-#         get_fill_color=[255, 0, 0],
-#         get_line_color=[0, 0, 0],
-#         pickable = False,
-#         data = data_filtered,#[[data_filtered.columns[0]]+ ['latitude', 'longitude']],
-#         get_position =["longitude", "latitude"],
-#         auto_highlight = True,
-#         aggregation=String('MEAN'),
-#     	get_weight=data_filtered.columns[0]
-#         ),
-#     ],
-# ))
