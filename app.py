@@ -1,37 +1,14 @@
 import pandas as pd 
 import streamlit as st
-import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 import plotly.express as px
 
-import folium
-from folium.plugins import HeatMap
 
-import requests, os
-from gwpy.timeseries import TimeSeries
-from gwosc.locate import get_urls
-from gwosc import datasets
-from gwosc.api import fetch_event_json
-
-from copy import deepcopy
-import base64
-import pydeck as pdk
-import plotly.express as px
-from pydeck.types import String
-
-
-# from helper import make_audio_file
-
-# Use the non-interactive Agg backend, which is recommended as a
-# thread-safe backend.
-# See https://matplotlib.org/3.3.2/faq/howto_faq.html#working-with-threads.
 import matplotlib as mpl
 mpl.use("agg")
 
-import numpy as np
-import time
 
 st.header('Where to find talent in the US to increase diversity and inclusion accross races and gender?')
 
@@ -66,7 +43,7 @@ degree_options = sorted(list(data.award_level.dropna().unique()))
 default_degree = degree_options.index("Bachelor's degree")
 award_level = st.sidebar.selectbox('Select Degree Awarded', degree_options, index = default_degree)
 
-default_cols = ['INSTNM',
+default_cols = ['INSTNM',  'ADDR', 'CITY', 'STABBR', 'ZIP',
 'longitude', 'latitude',
 'cip_label', 'award_level']
 
@@ -95,7 +72,7 @@ elif race == 'Latino/ Hispanic' and gender == 'all':
 data_filtered = data_filtered.loc[(data_filtered['cip_label'].isin(majors)) & (data_filtered['award_level'] == award_level), :]
 data_filtered = data_filtered[data_filtered[data_filtered.columns[0]]>0]
 midpoint = (np.average(data_filtered["latitude"]), np.average(data_filtered["longitude"]))
-
+name_main_column = data_filtered.columns[0]
 # st.subheader('Universities in {} with most {} {} students graduating with a {}: '.format(state, race, gender, award_level ))
 # st.map(data_filtered.dropna(how ="any"))
 
@@ -105,64 +82,43 @@ else:
 	zoom = 2
 
 px.set_mapbox_access_token('pk.eyJ1IjoiYWN1cGFsbGFyaSIsImEiOiJja3Q4NXFsM20wejFxMnVzMWxpbmFhODRkIn0.Yv8PS7w77NmVOWir9b304w')
-fig = px.scatter_mapbox(data_frame=data_filtered, lat='latitude', lon='longitude', size =data_filtered.columns[0], color = 'cip_label',
+fig = px.scatter_mapbox(data_frame=data_filtered, lat='latitude', lon='longitude', size =name_main_column, color = 'cip_label',
 	color_continuous_scale=px.colors.cyclical.IceFire, zoom=zoom,
 	hover_data = ['INSTNM'], mapbox_style = 'light')
 
 st.plotly_chart(fig)
 
-st.write(data_filtered.sort_values(data_filtered.columns[0], ascending = False).reset_index(drop =True))#.loc[:10,:'ZIP'])
+st.write(data_filtered.sort_values(name_main_column, ascending = False).reset_index(drop =True))#.loc[:10,:'ZIP'])
 
 aggregate_all_majors = st.checkbox("Aggregate results for all selected majors, by university", True, key=2)
 if aggregate_all_majors:
-	st.subheader('Total number of candidates for all selected majors')
+	st.markdown("***")
+
+	st.header('Total number of candidates for all selected majors')
 	unique_universities = data_filtered['INSTNM'].unique()
 
-	data_filtered_aggregated_by_school  =  data_filtered.groupby('INSTNM').head(1).reset_index(drop = True).sort_values('INSTNM')
+	data_filtered_one_row_per_college  =  data_filtered.groupby('INSTNM').head(1).reset_index(drop = True).sort_values('INSTNM')
+	data_filtered_one_row_per_college.drop(columns = ['cip_label'], inplace = True)
 
-	data_filtered_aggregated_by_school = data_filtered_aggregated_by_school.merge(data_filtered.groupby('INSTNM')[data_filtered.columns[0]].sum().reset_index(), on = 'INSTNM')
-	fig = px.scatter_mapbox(data_frame=data_filtered_aggregated_by_school, lat='latitude', lon='longitude', size =data_filtered_aggregated_by_school.columns[0], 
+	data_total_vals  = data_filtered.groupby('INSTNM')[name_main_column].sum().reset_index()
+	name_main_column_new = name_main_column+'_all_majors'
+
+	data_total_vals.rename(columns = {name_main_column:name_main_column_new}, inplace = True)
+
+
+
+	data_filtered_one_row_per_college = data_filtered_one_row_per_college.merge(data_total_vals, on = 'INSTNM')
+	data_filtered_one_row_per_college.drop(columns = [data_filtered_one_row_per_college.columns[0]], inplace = True)
+	data_filtered_one_row_per_college.rename(columns = {data_filtered_one_row_per_college.columns[-1]: name_main_column }, inplace = True)
+	first_column = data_filtered_one_row_per_college.pop(name_main_column)
+	data_filtered_one_row_per_college.insert(0, name_main_column, first_column)
+
+	fig1 = px.scatter_mapbox(data_frame=data_filtered_one_row_per_college, lat='latitude', lon='longitude', size =name_main_column, 
 		color_continuous_scale=px.colors.cyclical.IceFire, zoom=zoom,
 		hover_data = ['INSTNM'], mapbox_style = 'light')
 
-	st.plotly_chart(fig)
+	st.plotly_chart(fig1)
 
-	st.write(data_filtered_aggregated_by_school.sort_values(data_filtered_aggregated_by_school.columns[0], ascending = False).reset_index(drop =True))
-
-
+	st.write(data_filtered_one_row_per_college.sort_values(name_main_column, ascending = False).reset_index(drop =True))
 
 
-# from urllib.request import urlopen
-# import json
-# with urlopen('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json') as response:
-#     counties = json.load(response)
-
-# fig = px.choropleth_mapbox(data_filtered, geojson = counties,  locations = 'FIPS', color =data_filtered.columns[0],
-# range_color=(0, 12),
-#                            mapbox_style="carto-positron",
-#                            zoom=8, center = {"lat": midpoint[0], "lon": midpoint[1]},
-#                            opacity=0.5,)
-# fig.update_layout(margin = {'r':0, 't':0, 'l':0, 'b':0, })
-# st.plotly_chart(fig)
-
-# st.pydeck_chart(pdk.Deck(
-#     map_style ="mapbox://styles / mapbox / light-v9",
-#     initial_view_state ={
-#         "latitude": midpoint[0],
-#         "longitude": midpoint[1],
-#     },
-#     layers =[
-#         pdk.Layer(
-#         "HeatmapLayer",
-#         opacity=0.9,
-#         get_fill_color=[255, 0, 0],
-#         get_line_color=[0, 0, 0],
-#         pickable = False,
-#         data = data_filtered,#[[data_filtered.columns[0]]+ ['latitude', 'longitude']],
-#         get_position =["longitude", "latitude"],
-#         auto_highlight = True,
-#         aggregation=String('MEAN'),
-#     	get_weight=data_filtered.columns[0]
-#         ),
-#     ],
-# ))
